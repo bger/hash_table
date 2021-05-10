@@ -24,7 +24,7 @@ class HashTable
   end
 
   def []=(key, value)
-    rehash if load_factor_exceed?
+    rehash if bucket_size_exceed? || load_factor_exceed?
     write(key, value)
   end
 
@@ -40,17 +40,12 @@ class HashTable
     key.hash % @storage_size
   end
 
-  def load_factor_exceed?
-    @max_bucket_size >= BUCKET_SIZE_LIMIT ||
-     (@elements_count_in_storage.to_f / @storage.size.to_f) >= LOAD_FACTOR_LIMIT
-  end
-
   def rehash
-    @max_bucket_size = 0
     old_storage = @storage.dup
-    @storage_size *= 2
-    @elements_count_in_storage = 0
     @storage = Array.new(@storage_size * 2)
+
+    reset_metrics
+
     old_storage.compact.each do |element| # => [Element#1,Element#2]
       loop do
         next_element = element.next
@@ -59,6 +54,20 @@ class HashTable
         element = next_element
       end
     end
+  end
+
+  def bucket_size_exceed?
+    @max_bucket_size >= BUCKET_SIZE_LIMIT
+  end
+
+  def load_factor_exceed?
+    (@elements_count_in_storage.to_f / @storage.size.to_f) >= LOAD_FACTOR_LIMIT
+  end
+
+  def reset_metrics
+    @max_bucket_size = 0
+    @storage_size *= 2
+    @elements_count_in_storage = 0
   end
 
   def write(key, value)
